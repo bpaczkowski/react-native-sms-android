@@ -1,0 +1,27 @@
+{
+  "name": "react-native-sms-android",
+  "version": "0.0.1",
+  "author": "Bartek Paczkowski",
+  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bpaczkowski/react-native-sms-android.git"
+  },
+  "bugs": {
+    "url": "https://github.com/bpaczkowski/react-native-sms-android/issues"
+  },
+  "homepage": "https://github.com/bpaczkowski/react-native-sms-android",
+  "keywords": [
+    "react-native",
+    "android",
+    "library"
+  ],
+  "scripts": {
+    "start": "node node_modules/react-native/local-cli/cli.js start",
+    "test": "jest"
+  },
+  "peerDependencies": {
+    "react-native": ">=0.38.0"
+  }
+}
