@@ -1,4 +1,4 @@
-package pl.freki.reactnativesms;
+package pl.freki.reactnativesmsandroid;
 
 import android.telephony.SmsManager;
 
@@ -34,11 +34,11 @@ public class ReactNativeSmsAndroidModule extends ReactContextBaseJavaModule {
         try {
             SmsManager smsManager = SmsManager.getDefault();
 
-            sms.sendTextMessage(phoneNumber, null, message, null, null);
+            smsManager.sendTextMessage(phoneNumber, null, message, null, null);
 
-            promise.resolve();
+            promise.resolve("SUCCESS");
         } catch (Exception e) {
-            promise.reject(e);
+            promise.reject("ERROR", e);
         }
     }
 

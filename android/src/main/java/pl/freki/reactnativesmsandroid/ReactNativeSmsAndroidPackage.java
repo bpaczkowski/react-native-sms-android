@@ -1,4 +1,4 @@
-package pl.freki.reactnativesms;
+package pl.freki.reactnativesmsandroid;
 
 import com.facebook.react.ReactPackage;
 import com.facebook.react.bridge.JavaScriptModule;
