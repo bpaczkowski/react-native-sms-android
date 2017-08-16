@@ -13,14 +13,15 @@ import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.modules.core.DeviceEventManagerModule;
 
 import java.util.UUID;
 
 public class ReactNativeSmsAndroidModule extends ReactContextBaseJavaModule {
     private final ReactApplicationContext reactContext;
-    private Callback deliveryCallback = null;
-    private String INTENT_SENT = "SMS_SENT";
-    private String INTENT_DELIVERED = "SMS_DELIVERED";
+    private String MESSAGE_SENT = "MESSAGE_SENT";
+    private String MESSAGE_DELIVERED = "MESSAGE_DELIVERED";
+    private String MESSAGE_SEND_FAILURE = "MESSAGE_SEND_FAILURE";
 
     public ReactNativeSmsAndroidModule(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -32,49 +33,44 @@ public class ReactNativeSmsAndroidModule extends ReactContextBaseJavaModule {
         return "SmsAndroid";
     }
 
-    private void sendDeliveryCallback(String messageId) {
-        if (deliveryCallback != null) {
-            deliveryCallback.invoke(messageId);
-        }
-    }
-
-    @ReactMethod
-    public void setDeliveryCallback(Callback callback) {
-        deliveryCallback = callback;
+    private void sendDeliveryEvent(String messageId) {
+        reactContext
+            .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+            .emit(MESSAGE_DELIVERED, messageId);
     }
 
     @ReactMethod
     public void send(String phoneNumber, String message, final String messageId, final Promise promise) {
         try {
             String intentId = UUID.randomUUID().toString();
-            PendingIntent messageSentIntent = PendingIntent.getBroadcast(reactContext, 0, new Intent(intentId + INTENT_SENT), 0);
+            PendingIntent messageSentIntent = PendingIntent.getBroadcast(reactContext, 0, new Intent(intentId + MESSAGE_SENT), 0);
             SmsManager smsManager = SmsManager.getDefault();
 
             reactContext.registerReceiver(new BroadcastReceiver() {
                 @Override
                 public void onReceive(Context context, Intent intent) {
                     if (getResultCode() == Activity.RESULT_OK) {
-                        promise.resolve("SUCCESS");
+                        promise.resolve(MESSAGE_SENT);
                     } else {
-                        promise.reject(new Error("SMS_SEND_FAILURE"));
+                        promise.reject(new Error(MESSAGE_SEND_FAILURE));
                     }
                 }
-            }, new IntentFilter(intentId + INTENT_SENT));
+            }, new IntentFilter(intentId + MESSAGE_SENT));
 
-            if (messageId == null || deliveryCallback == null) {
+            if (messageId == null) {
                 smsManager.sendTextMessage(phoneNumber, null, message, messageSentIntent, null);
 
                 return;
             }
 
-            PendingIntent messageDeliveredIntent = PendingIntent.getBroadcast(reactContext, 0, new Intent(intentId + INTENT_DELIVERED), 0);
+            PendingIntent messageDeliveredIntent = PendingIntent.getBroadcast(reactContext, 0, new Intent(intentId + MESSAGE_DELIVERED), 0);
 
             reactContext.registerReceiver(new BroadcastReceiver() {
                 @Override
                 public void onReceive(Context context, Intent intent) {
-                    sendDeliveryCallback(messageId);
+                    sendDeliveryEvent(messageId);
                 }
-            }, new IntentFilter(intentId + INTENT_DELIVERED));
+            }, new IntentFilter(intentId + MESSAGE_DELIVERED));
 
             smsManager.sendTextMessage(phoneNumber, null, message, messageSentIntent, messageDeliveredIntent);
         } catch (Exception e) {
