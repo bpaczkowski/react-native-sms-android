@@ -64,13 +64,9 @@ class ReactNativeSmsAndroidModule extends ReactContextBaseJavaModule {
                 messageDeliveredIntents.add(messageDeliveredIntent);
             }
 
-            System.out.println("Sending message with " + messagePartsSize + " and id " + messageId);
-
             reactContext.registerReceiver(new BroadcastReceiver() {
                 @Override
                 public void onReceive(Context context, Intent intent) {
-                    System.out.println("received sent intent, message id " + messageId + " result " + getResultCode() + " partsConfirmed " + intent.getIntExtra(PARTS_CONFIRMED, 0));
-
                     if (getResultCode() == Activity.RESULT_OK) {
                         Integer partsConfirmed = intent.getIntExtra(PARTS_CONFIRMED, 0);
 
@@ -86,7 +82,7 @@ class ReactNativeSmsAndroidModule extends ReactContextBaseJavaModule {
                         intent.putExtra(PARTS_CONFIRMED, partsConfirmed);
                         PendingIntent.getBroadcast(reactContext, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
                     } else {
-                        messageSentIntent.cancel();
+                        PendingIntent.getBroadcast(reactContext, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT).cancel();
                         promise.reject(new Error(MESSAGE_SEND_FAILURE));
                     }
                 }
@@ -95,15 +91,13 @@ class ReactNativeSmsAndroidModule extends ReactContextBaseJavaModule {
             reactContext.registerReceiver(new BroadcastReceiver() {
                 @Override
                 public void onReceive(Context context, Intent intent) {
-                    System.out.println("received delivered intent, message id " + messageId + " result " + getResultCode() + " partsConfirmed " + intent.getIntExtra(PARTS_CONFIRMED, 0));
-
                     Integer partsConfirmed = intent.getIntExtra(PARTS_CONFIRMED, 0);
 
                     partsConfirmed++;
 
                     if (partsConfirmed.equals(messagePartsSize)) {
                         sendDeliveryEvent(messageId);
-                        messageDeliveredIntent.cancel();
+                        PendingIntent.getBroadcast(reactContext, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT).cancel();
 
                         return;
                     }
