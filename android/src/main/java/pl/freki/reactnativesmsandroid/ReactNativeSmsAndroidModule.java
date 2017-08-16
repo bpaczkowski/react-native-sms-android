@@ -22,6 +22,7 @@ class ReactNativeSmsAndroidModule extends ReactContextBaseJavaModule {
     private String MESSAGE_SENT = "MESSAGE_SENT";
     private String MESSAGE_DELIVERED = "MESSAGE_DELIVERED";
     private String MESSAGE_SEND_FAILURE = "MESSAGE_SEND_FAILURE";
+    private String PARTS_CONFIRMED = ReactNativeSmsAndroidModule.class.getPackage().toString() + ".PartsConfirmed";
 
     ReactNativeSmsAndroidModule(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -63,12 +64,28 @@ class ReactNativeSmsAndroidModule extends ReactContextBaseJavaModule {
                 messageDeliveredIntents.add(messageDeliveredIntent);
             }
 
+            System.out.println("Sending message with " + messagePartsSize + " and id " + messageId);
+
             reactContext.registerReceiver(new BroadcastReceiver() {
                 @Override
                 public void onReceive(Context context, Intent intent) {
+                    System.out.println("received sent intent, message id " + messageId + " result " + getResultCode() + " partsConfirmed " + intent.getIntExtra(PARTS_CONFIRMED, 0));
+
                     if (getResultCode() == Activity.RESULT_OK) {
-                        promise.resolve(MESSAGE_SENT);
+                        Integer partsConfirmed = intent.getIntExtra(PARTS_CONFIRMED, 0);
+
+                        partsConfirmed++;
+
+                        if (partsConfirmed.equals(messagePartsSize)) {
+                            promise.resolve(MESSAGE_SENT);
+                            messageSentIntent.cancel();
+
+                            return;
+                        }
+
+                        intent.putExtra(PARTS_CONFIRMED, partsConfirmed);
                     } else {
+                        messageSentIntent.cancel();
                         promise.reject(new Error(MESSAGE_SEND_FAILURE));
                     }
                 }
@@ -77,7 +94,20 @@ class ReactNativeSmsAndroidModule extends ReactContextBaseJavaModule {
             reactContext.registerReceiver(new BroadcastReceiver() {
                 @Override
                 public void onReceive(Context context, Intent intent) {
-                    sendDeliveryEvent(messageId);
+                    System.out.println("received delivered intent, message id " + messageId + " result " + getResultCode() + " partsConfirmed " + intent.getIntExtra(PARTS_CONFIRMED, 0));
+
+                    Integer partsConfirmed = intent.getIntExtra(PARTS_CONFIRMED, 0);
+
+                    partsConfirmed++;
+
+                    if (partsConfirmed.equals(messagePartsSize)) {
+                        sendDeliveryEvent(messageId);
+                        messageDeliveredIntent.cancel();
+
+                        return;
+                    }
+
+                    intent.putExtra(PARTS_CONFIRMED, partsConfirmed);
                 }
             }, new IntentFilter(intentId + MESSAGE_DELIVERED));
 
