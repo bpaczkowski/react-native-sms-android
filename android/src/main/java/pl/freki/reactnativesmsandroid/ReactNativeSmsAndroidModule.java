@@ -6,6 +6,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.support.annotation.NonNull;
 import android.telephony.SmsManager;
 
 import com.facebook.react.bridge.Promise;
@@ -39,7 +40,13 @@ public class ReactNativeSmsAndroidModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void send(String phoneNumber, String message, final String messageId, final Promise promise) {
+    public void send(@NonNull String phoneNumber, @NonNull String message, final String messageId, final Promise promise) {
+        if (phoneNumber.isEmpty() || message.isEmpty()) {
+            promise.reject(new Error("phoneNumber and message must not be empty"));
+
+            return;
+        }
+
         try {
             String intentId = UUID.randomUUID().toString();
             PendingIntent messageSentIntent = PendingIntent.getBroadcast(reactContext, 0, new Intent(intentId + MESSAGE_SENT), 0);
