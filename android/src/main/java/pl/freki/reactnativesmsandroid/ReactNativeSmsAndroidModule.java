@@ -84,6 +84,7 @@ class ReactNativeSmsAndroidModule extends ReactContextBaseJavaModule {
                         }
 
                         intent.putExtra(PARTS_CONFIRMED, partsConfirmed);
+                        PendingIntent.getBroadcast(reactContext, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
                     } else {
                         messageSentIntent.cancel();
                         promise.reject(new Error(MESSAGE_SEND_FAILURE));
@@ -108,6 +109,7 @@ class ReactNativeSmsAndroidModule extends ReactContextBaseJavaModule {
                     }
 
                     intent.putExtra(PARTS_CONFIRMED, partsConfirmed);
+                    PendingIntent.getBroadcast(reactContext, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
                 }
             }, new IntentFilter(intentId + MESSAGE_DELIVERED));
 
