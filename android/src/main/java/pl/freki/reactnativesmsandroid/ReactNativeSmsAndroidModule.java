@@ -22,7 +22,6 @@ class ReactNativeSmsAndroidModule extends ReactContextBaseJavaModule {
     private String MESSAGE_SENT = "MESSAGE_SENT";
     private String MESSAGE_DELIVERED = "MESSAGE_DELIVERED";
     private String MESSAGE_SEND_FAILURE = "MESSAGE_SEND_FAILURE";
-    private String PARTS_CONFIRMED = ReactNativeSmsAndroidModule.class.getPackage().toString() + ".PartsConfirmed";
 
     ReactNativeSmsAndroidModule(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -68,20 +67,8 @@ class ReactNativeSmsAndroidModule extends ReactContextBaseJavaModule {
                 @Override
                 public void onReceive(Context context, Intent intent) {
                     if (getResultCode() == Activity.RESULT_OK) {
-                        Integer partsConfirmed = intent.getIntExtra(PARTS_CONFIRMED, 0);
-
-                        partsConfirmed++;
-
-                        if (partsConfirmed.equals(messagePartsSize)) {
-                            promise.resolve(MESSAGE_SENT);
-                            messageSentIntent.cancel();
-
-                            return;
-                        }
-
-                        intent.putExtra(PARTS_CONFIRMED, partsConfirmed);
+                        promise.resolve(MESSAGE_SENT);
                     } else {
-                        messageSentIntent.cancel();
                         promise.reject(new Error(MESSAGE_SEND_FAILURE));
                     }
                 }
@@ -90,18 +77,7 @@ class ReactNativeSmsAndroidModule extends ReactContextBaseJavaModule {
             reactContext.registerReceiver(new BroadcastReceiver() {
                 @Override
                 public void onReceive(Context context, Intent intent) {
-                    Integer partsConfirmed = intent.getIntExtra(PARTS_CONFIRMED, 0);
-
-                    partsConfirmed++;
-
-                    if (partsConfirmed.equals(messagePartsSize)) {
-                        sendDeliveryEvent(messageId);
-                        messageDeliveredIntent.cancel();
-
-                        return;
-                    }
-
-                    intent.putExtra(PARTS_CONFIRMED, partsConfirmed);
+                    sendDeliveryEvent(messageId);
                 }
             }, new IntentFilter(intentId + MESSAGE_DELIVERED));
 
