@@ -40,10 +40,64 @@ class ReactNativeSmsAndroidModule extends ReactContextBaseJavaModule {
             .emit(MESSAGE_DELIVERED, messageId);
     }
 
+    private void sendWithoutMessageId(String phoneNumber, String message, final Promise promise) {
+        if (phoneNumber == null || phoneNumber.isEmpty() || message == null || message.isEmpty()) {
+            promise.reject(new Error("phoneNumber, message and messageId must not be empty"));
+
+            return;
+        }
+
+        try {
+            SmsManager smsManager = SmsManager.getDefault();
+            ArrayList<String> messageParts = smsManager.divideMessage(message);
+            final Integer messagePartsSize = messageParts.size();
+            String intentId = UUID.randomUUID().toString();
+            final PendingIntent messageSentIntent = PendingIntent.getBroadcast(reactContext, 0, new Intent(intentId + MESSAGE_SENT), 0);
+            ArrayList<PendingIntent> messageSentIntents = new ArrayList<>(messagePartsSize);
+
+            for (int i = 0; i < messagePartsSize; i++) {
+                messageSentIntents.add(messageSentIntent);
+            }
+
+            reactContext.registerReceiver(new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    if (getResultCode() == Activity.RESULT_OK) {
+                        Integer partsConfirmed = intent.getIntExtra(PARTS_CONFIRMED, 0);
+
+                        partsConfirmed++;
+
+                        if (partsConfirmed.equals(messagePartsSize)) {
+                            promise.resolve(MESSAGE_SENT);
+                            messageSentIntent.cancel();
+
+                            return;
+                        }
+
+                        intent.putExtra(PARTS_CONFIRMED, partsConfirmed);
+                        PendingIntent.getBroadcast(reactContext, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+                    } else {
+                        PendingIntent.getBroadcast(reactContext, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT).cancel();
+                        promise.reject(new Error(MESSAGE_SEND_FAILURE));
+                    }
+                }
+            }, new IntentFilter(intentId + MESSAGE_SENT));
+
+            smsManager.sendMultipartTextMessage(phoneNumber, null, messageParts, messageSentIntents, null);
+        } catch (Exception e) {
+            promise.reject(e);
+        }
+    }
+
     @ReactMethod
     public void send(String phoneNumber, String message, final String messageId, final Promise promise) {
-        if (phoneNumber == null || phoneNumber.isEmpty() || message == null ||
-                message.isEmpty() || messageId == null || message.isEmpty()) {
+        if (messageId == null || messageId.isEmpty()) {
+            sendWithoutMessageId(phoneNumber, message, promise);
+
+            return;
+        }
+
+        if (phoneNumber == null || phoneNumber.isEmpty() || message == null || message.isEmpty()) {
             promise.reject(new Error("phoneNumber, message and messageId must not be empty"));
 
             return;
